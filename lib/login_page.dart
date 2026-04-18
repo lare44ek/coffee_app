@@ -42,7 +42,8 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Авторизация'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Color.fromRGBO(175, 146, 133, 1),
+        foregroundColor: Color.fromRGBO(245, 245, 245, 1),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -81,12 +82,12 @@ class _LoginPageState extends State<LoginPage> {
             ElevatedButton(
               onPressed: _attemptLogin,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.brown,
+                backgroundColor: Color.fromRGBO(67, 160, 71, 1),
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 50),
                 textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              child: const Text('Войти'),
+              child: const Text('Войти')
             ),
           ],
         ),
@@ -101,3 +102,4 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 }
+

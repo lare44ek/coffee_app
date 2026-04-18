@@ -96,7 +96,7 @@ class _LabelGeneratorPageState extends State<LabelGeneratorPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('☕ Кофейный Учёт'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Color.fromRGBO(175, 146, 133, 1),
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner),
