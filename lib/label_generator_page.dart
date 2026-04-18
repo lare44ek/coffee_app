@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'qr_scanner_screen.dart'; 
 import 'package:flutter/services.dart';
+import 'dart:math';
+import 'jumpscare_overlay.dart';
 
 
 // Определяем тип для передачи метода добавления в историю
@@ -55,7 +57,7 @@ class _LabelGeneratorPageState extends State<LabelGeneratorPage> {
     });
   }
 
-  void _copyToClipboard() async {
+    void _copyToClipboard() async {
     if (_resultText.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Нечего копировать.')),
@@ -76,10 +78,9 @@ class _LabelGeneratorPageState extends State<LabelGeneratorPage> {
     }
   }
 
-  // --- НОВОЕ ---
   void _saveToHistory() {
-    if (_resultText.isNotEmpty && !_resultText.contains('⚠️')) { // Не сохраняем ошибки
-      widget.addToHistory(_resultText); // Вызываем переданный callback
+    if (_resultText.isNotEmpty && !_resultText.contains('⚠️')) {
+      widget.addToHistory(_resultText);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('✅ Маркировка добавлена в историю!')),
       );
@@ -89,7 +90,29 @@ class _LabelGeneratorPageState extends State<LabelGeneratorPage> {
       );
     }
   }
-  // --- /НОВОЕ ---
+
+  // --- НОВАЯ ФУНКЦИЯ ---
+void _checkForJumpscare() {
+  final random = Random();
+  final chance = random.nextInt(100);
+  print("DEBUG: Random chance = $chance");
+  if (chance >= 0 && chance <= 26) { // Проверяем 0 для отладки
+    print("DEBUG: Showing jumpscare!");
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Важно: запрещаем закрытие по клику вне
+      builder: (context) => const JumpscareOverlay(
+        // onDismiss можно передать, если хочешь выполнить код после закрытия
+        // onDismiss: () => print("Jumpscare closed!"),
+      ),
+    ).then((_) {
+      print("DEBUG: Jumpscare dialog closed.");
+    });
+  } else {
+    print("DEBUG: No jumpscare this time.");
+  }
+}
+  // --- /НОВАЯ ФУНКЦИЯ ---
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +174,10 @@ class _LabelGeneratorPageState extends State<LabelGeneratorPage> {
             const SizedBox(height: 20),
 
             ElevatedButton(
-              onPressed: _calculateExpiration,
+              onPressed: () { // <-- Изменили onPressed
+                _calculateExpiration();
+                _checkForJumpscare(); // Вызываем проверку после расчёта
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.brown,
                 foregroundColor: Colors.white,
@@ -162,7 +188,6 @@ class _LabelGeneratorPageState extends State<LabelGeneratorPage> {
             ),
             const SizedBox(height: 20),
 
-            // --- НОВОЕ: Кнопка "Сохранить в историю" ---
             OutlinedButton(
               onPressed: _saveToHistory,
               style: OutlinedButton.styleFrom(
@@ -173,7 +198,6 @@ class _LabelGeneratorPageState extends State<LabelGeneratorPage> {
               child: const Text('💾 Сохранить в историю'),
             ),
             const SizedBox(height: 20),
-            // --- /НОВОЕ ---
 
             Container(
               padding: const EdgeInsets.all(20),
@@ -193,7 +217,10 @@ class _LabelGeneratorPageState extends State<LabelGeneratorPage> {
             const SizedBox(height: 20),
 
             OutlinedButton.icon(
-              onPressed: _copyToClipboard,
+              onPressed: () { // <-- Изменили onPressed и тут
+                _copyToClipboard();
+                _checkForJumpscare(); // Или вызвать и тут, если хочешь
+              },
               icon: const Icon(Icons.copy),
               label: const Text('Копировать текст'),
             ),
