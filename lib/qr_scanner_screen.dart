@@ -10,7 +10,8 @@ class QRScannerScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Сканировать QR-код'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Color.fromRGBO(175, 146, 133, 1),
+        foregroundColor: Color.fromRGBO(255, 255, 255, 1),
       ),
       // MobileScanner отвечает за отображение камеры и сканирование
       body: MobileScanner(

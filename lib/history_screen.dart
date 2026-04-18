@@ -11,7 +11,8 @@ class HistoryScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('История маркировок'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor:  Color.fromRGBO(175, 146, 133, 1),
+        foregroundColor: Color.fromRGBO(245, 245, 245, 1),
       ),
       body: history.isEmpty
           ? const Center(
