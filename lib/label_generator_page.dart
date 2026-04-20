@@ -51,6 +51,14 @@ class _LabelGeneratorPageState extends State<LabelGeneratorPage> {
   _resultText = '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}\n'
       '${expiration.day.toString().padLeft(2, '0')}.${expiration.month.toString().padLeft(2, '0')}.${expiration.hour.toString().padLeft(2, '0')}:${expiration.minute.toString().padLeft(2, '0')}';
 });
+
+    // Автоматически добавляем в историю, если результат валиден
+    if (_resultText.isNotEmpty && !_resultText.contains('⚠️')) {
+      widget.addToHistory(_resultText);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ Маркировка добавлена в историю!')),
+      );
+    }
   }
 
     void _copyToClipboard() async {
@@ -70,19 +78,6 @@ class _LabelGeneratorPageState extends State<LabelGeneratorPage> {
       print("Ошибка копирования: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('❌ Ошибка: $e')),
-      );
-    }
-  }
-
-  void _saveToHistory() {
-    if (_resultText.isNotEmpty && !_resultText.contains('⚠️')) {
-      widget.addToHistory(_resultText);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Маркировка добавлена в историю!')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ Нечего добавлять в историю.')),
       );
     }
   }
@@ -114,20 +109,38 @@ void _checkForJumpscare() {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('☕ Кофейный Учёт'),
         backgroundColor: Color.fromRGBO(175, 146, 133, 1),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.qr_code_scanner),
-            tooltip: 'Сканировать QR-код',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const QRScannerScreen()),
-              );
-            },
+        toolbarHeight: 80,
+        flexibleSpace: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Text(
+                  'Маркировка',
+                  style: TextStyle(
+                    fontSize: 35,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+                  tooltip: 'Сканировать QR-код',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const QRScannerScreen()),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -135,9 +148,9 @@ void _checkForJumpscare() {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Генератор маркировки',
+              'Выберите продукт',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
+              textAlign: TextAlign.left,
             ),
             const SizedBox(height: 30),
 
@@ -175,23 +188,15 @@ void _checkForJumpscare() {
                 _checkForJumpscare(); // Вызываем проверку после расчёта
               },
               style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 backgroundColor: Colors.brown,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               child: const Text('📦 ВСКРЫТО'),
-            ),
-            const SizedBox(height: 20),
-
-            OutlinedButton(
-              onPressed: _saveToHistory,
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.brown),
-                foregroundColor: Colors.brown,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-              ),
-              child: const Text('💾 Сохранить в историю'),
             ),
             const SizedBox(height: 20),
 
@@ -232,6 +237,11 @@ void _checkForJumpscare() {
                 _copyToClipboard();
                 _checkForJumpscare(); // Или вызвать и тут, если хочешь
               },
+              style: OutlinedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
               icon: const Icon(Icons.copy),
               label: const Text('Копировать текст'),
             ),
