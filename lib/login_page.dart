@@ -13,8 +13,8 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _loginController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  static const String correctLogin = 'admin';
-  static const String correctPassword = '12345678';
+  static const String correctLogin = '1';
+  static const String correctPassword = '1';
 
   void _attemptLogin() async {
     String enteredLogin = _loginController.text.trim();

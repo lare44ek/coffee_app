@@ -4,6 +4,7 @@ import 'qr_scanner_screen.dart';
 import 'package:flutter/services.dart';
 import 'dart:math';
 import 'jumpscare_overlay.dart';
+import 'package:dotted_border/dotted_border.dart';
 
 
 // Определяем тип для передачи метода добавления в историю
@@ -44,17 +45,12 @@ class _LabelGeneratorPageState extends State<LabelGeneratorPage> {
     int shelfLifeHours = _products[_selectedProduct]!;
     DateTime now = DateTime.now();
     DateTime expiration = now.add(Duration(hours: shelfLifeHours));
-    String expirationString = 
-        '${expiration.day.toString().padLeft(2, '0')}.${expiration.month.toString().padLeft(2, '0')} '
-        '${expiration.hour.toString().padLeft(2, '0')}:${expiration.minute.toString().padLeft(2, '0')}';
+    
 
-    setState(() {
-      _resultText = '''
-✅ ПРОДУКТ: $_selectedProduct
- ВСКРЫТО: ${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}
-⏳ ГОДЕН ДО: $expirationString
-      ''';
-    });
+  setState(() {
+  _resultText = '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}\n'
+      '${expiration.day.toString().padLeft(2, '0')}.${expiration.month.toString().padLeft(2, '0')}.${expiration.hour.toString().padLeft(2, '0')}:${expiration.minute.toString().padLeft(2, '0')}';
+});
   }
 
     void _copyToClipboard() async {
@@ -96,7 +92,7 @@ void _checkForJumpscare() {
   final random = Random();
   final chance = random.nextInt(100);
   print("DEBUG: Random chance = $chance");
-  if (chance >= 0 && chance <= 26) { // Проверяем 0 для отладки
+  if (chance == 0) { // Проверяем 0 для отладки
     print("DEBUG: Showing jumpscare!");
     showDialog(
       context: context,
@@ -199,21 +195,36 @@ void _checkForJumpscare() {
             ),
             const SizedBox(height: 20),
 
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.brown.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.brown, width: 2),
-              ),
-              child: Text(
-                _resultText,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontFamily: 'monospace',
+            const SizedBox(height: 20),
+
+            // Контейнер с результатом (плотно облегает текст + пунктир)
+            Center(
+              child: DottedBorder(
+                borderType: BorderType.RRect,
+                radius: const Radius.circular(12),
+                color: Colors.brown,
+                strokeWidth: 2,
+                dashPattern: [8, 4], // Длина штриха и пробела
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.brown.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IntrinsicWidth(  // ← Заставляет контейнер обнимать текст
+                    child: Text(
+                      _resultText,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 25,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
+
             const SizedBox(height: 20),
 
             OutlinedButton.icon(
