@@ -14,31 +14,65 @@ class QRScannerScreen extends StatelessWidget {
         foregroundColor: Color.fromRGBO(255, 255, 255, 1),
       ),
       // MobileScanner отвечает за отображение камеры и сканирование
-      body: MobileScanner(
-        // onDetect можно использовать для обработки распознанного QR-кода
-        onDetect: (capture) {
-          final List<Barcode> barcodes = capture.barcodes;
-          for (final Barcode barcode in barcodes) {
-            // Получаем текст из QR-кода
-            final String code = barcode.rawValue ?? 'Не удалось распознать';
-            // Показываем Snackbar с результатом
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('QR-код: $code')),
-            );
-            // Пример: можно сразу вернуть результат в предыдущий экран
-            // Navigator.pop(context, code);
-            // Но пока просто покажем snackbar и продолжим сканировать
-          }
-        },
-        // Если хочешь, можно отключить автоспуск затвора
-        controller: MobileScannerController(
-          detectionSpeed: DetectionSpeed.noDuplicates, // Пример настройки
-          // torchEnabled: true, // Включить/выключить вспышку
-        ),
+      body: Stack(
+        children: [
+          MobileScanner(
+            // onDetect можно использовать для обработки распознанного QR-кода
+            onDetect: (capture) {
+              final List<Barcode> barcodes = capture.barcodes;
+              for (final Barcode barcode in barcodes) {
+                // Получаем текст из QR-кода
+                final String code = barcode.rawValue ?? 'Не удалось распознать';
+                // Показываем Snackbar с результатом
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('QR-код: $code')),
+                );
+                // Пример: можно сразу вернуть результат в предыдущий экран
+                // Navigator.pop(context, code);
+                // Но пока просто покажем snackbar и продолжим сканировать
+              }
+            },
+            // Если хочешь, можно отключить автоспуск затвера
+            controller: MobileScannerController(
+              detectionSpeed: DetectionSpeed.noDuplicates, // Пример настройки
+              // torchEnabled: true, // Включить/выключить вспышку
+            ),
+          ),
+          Positioned(
+            top: 100,
+            left: 0,
+            right: 0,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: const _ScannerOverlay(),
+            ),
+          ),
+          Positioned(
+            bottom: 50,
+            left: 0,
+            right: 0,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Отсканируйте QR-код на упаковке',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
-      // Добавим подсказку поверх камеры
-      floatingActionButton: const _ScannerOverlay(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }
@@ -59,26 +93,6 @@ class _ScannerOverlay extends StatelessWidget {
         border: Border.all(color: Colors.green, width: 3),
         // Скругления
         borderRadius: BorderRadius.circular(10),
-      ),
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          margin: const EdgeInsets.only(bottom: 20),
-          // Полупрозрачный фон для текста
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.6),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Text(
-            'Отсканируйте QR-код на упаковке',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ),
       ),
     );
   }
