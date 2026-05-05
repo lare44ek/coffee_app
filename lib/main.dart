@@ -1,9 +1,16 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
-import 'login_page.dart'; // Импортируем LoginPage
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'login_page.dart';
 
 void main() {
-  runApp(const CoffeeApp());
+  runApp(
+    // ProviderScope — обязательная обёртка: хранит все провайдеры приложения.
+    // Должна быть ровно одна, в самом корне дерева.
+    const ProviderScope(
+      child: CoffeeApp(),
+    ),
+  );
 }
 
 class CoffeeApp extends StatelessWidget {
@@ -17,9 +24,7 @@ class CoffeeApp extends StatelessWidget {
         primarySwatch: Colors.brown,
         useMaterial3: true,
       ),
-      // Теперь стартуем с LoginPage
       home: const LoginPage(),
-      // Убираем routes или другие настройки home, если были
     );
   }
 }

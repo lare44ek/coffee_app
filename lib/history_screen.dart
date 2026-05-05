@@ -1,19 +1,22 @@
 // lib/history_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class HistoryScreen extends StatelessWidget {
-  final List<String> history; // Список маркировок, который будет передан сюда
+import 'providers/app_providers.dart';
+import 'widgets/app_header.dart';
 
-  const HistoryScreen({super.key, required this.history});
+// ConsumerWidget — как StatelessWidget, но с доступом к ref.
+// Параметр history в конструкторе больше не нужен: экран сам читает данные.
+class HistoryScreen extends ConsumerWidget {
+  const HistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // ref.watch перестраивает виджет каждый раз, когда список меняется.
+    final history = ref.watch(markingsProvider);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('История маркировок'),
-        backgroundColor:  Color.fromRGBO(175, 146, 133, 1),
-        foregroundColor: Color.fromRGBO(245, 245, 245, 1),
-      ),
+      appBar: const AppHeader(title: 'История'),
       body: history.isEmpty
           ? const Center(
               child: Text(
@@ -25,13 +28,14 @@ class HistoryScreen extends StatelessWidget {
           : ListView.builder(
               itemCount: history.length,
               itemBuilder: (context, index) {
-                // Отображаем каждую маркировку в карточке
+                // Новые записи сверху
+                final marking = history[history.length - 1 - index];
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Text(
-                      history[history.length - 1 - index], // Показываем в обратном порядке (новые сверху)
+                      marking.historyText,
                       style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
                     ),
                   ),

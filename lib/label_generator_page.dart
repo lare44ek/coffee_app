@@ -1,68 +1,75 @@
 // lib/label_generator_page.dart
 import 'package:flutter/material.dart';
-import 'qr_scanner_screen.dart'; 
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:math';
-import 'jumpscare_overlay.dart';
 import 'package:dotted_border/dotted_border.dart';
 
+import 'models/product.dart';
+import 'models/marking.dart';
+import 'widgets/app_header.dart';
+import 'theme/app_colors.dart';
+import 'providers/app_providers.dart';
+import 'qr_scanner_screen.dart';
+import 'jumpscare_overlay.dart';
 
-// Определяем тип для передачи метода добавления в историю
-typedef AddToHistoryCallback = void Function(String label);
-
-class LabelGeneratorPage extends StatefulWidget {
-  final AddToHistoryCallback addToHistory; // Получаем callback из родителя
-
-  const LabelGeneratorPage({super.key, required this.addToHistory});
+// ConsumerStatefulWidget — как StatefulWidget, но с доступом к ref.
+// Используем его, а не ConsumerWidget, потому что у экрана есть
+// локальный стейт: выбранный продукт и последняя маркировка.
+class LabelGeneratorPage extends ConsumerStatefulWidget {
+  const LabelGeneratorPage({super.key});
 
   @override
-  State<LabelGeneratorPage> createState() => _LabelGeneratorPageState();
+  ConsumerState<LabelGeneratorPage> createState() => _LabelGeneratorPageState();
 }
 
-class _LabelGeneratorPageState extends State<LabelGeneratorPage> {
-  String? _selectedProduct;
-  String _resultText = 'Нажмите "Вскрыто" для расчёта';
+class _LabelGeneratorPageState extends ConsumerState<LabelGeneratorPage> {
+  // Локальный стейт — нужен только этому экрану, в провайдер не идёт.
+  Product? _selectedProduct;
+  Marking? _lastMarking;
 
-  final Map<String, int> _products = {
-    'Молоко 3.2%': 48,
-    'Сливки 10%': 48,
-    'Сливки 20%': 72,
-    'Сироп ванильный': 720,
-    'Сироп карамельный': 720,
-    'Кофе в зернах': 720,
-    'Матча': 168,
-    'Шоколадный соус': 336,
-  };
+  // Каталог продуктов — пока хардкод, потом заменим на ProductsRepository
+  static const List<Product> _products = [
+    Product(name: 'Молоко 3.2%',      shelfLifeHours: 48),
+    Product(name: 'Сливки 10%',        shelfLifeHours: 48),
+    Product(name: 'Сливки 20%',        shelfLifeHours: 72),
+    Product(name: 'Сироп ванильный',   shelfLifeHours: 720),
+    Product(name: 'Сироп карамельный', shelfLifeHours: 720),
+    Product(name: 'Кофе в зернах',     shelfLifeHours: 720),
+    Product(name: 'Матча',             shelfLifeHours: 168),
+    Product(name: 'Шоколадный соус',   shelfLifeHours: 336),
+  ];
 
   void _calculateExpiration() {
     if (_selectedProduct == null) {
-      setState(() {
-        _resultText = '⚠️ Выберите продукт из списка!';
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('⚠️ Выберите продукт из списка!')),
+      );
       return;
     }
 
-    int shelfLifeHours = _products[_selectedProduct]!;
-    DateTime now = DateTime.now();
-    DateTime expiration = now.add(Duration(hours: shelfLifeHours));
-    
+    final now = DateTime.now();
+    final expiration = now.add(Duration(hours: _selectedProduct!.shelfLifeHours));
+    final marking = Marking(
+      product: _selectedProduct!,
+      openedAt: now,
+      expiresAt: expiration,
+    );
 
-  setState(() {
-  _resultText = '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}\n'
-      '${expiration.day.toString().padLeft(2, '0')}.${expiration.month.toString().padLeft(2, '0')}.${expiration.hour.toString().padLeft(2, '0')}:${expiration.minute.toString().padLeft(2, '0')}';
-});
+    setState(() {
+      _lastMarking = marking;
+    });
 
-    // Автоматически добавляем в историю, если результат валиден
-    if (_resultText.isNotEmpty && !_resultText.contains('⚠️')) {
-      widget.addToHistory(_resultText);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Маркировка добавлена в историю!')),
-      );
-    }
+    // Пишем в глобальный провайдер — callback больше не нужен.
+    ref.read(markingsProvider.notifier).add(marking);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('✅ Маркировка добавлена в историю!')),
+    );
   }
 
-    void _copyToClipboard() async {
-    if (_resultText.trim().isEmpty) {
+  void _copyToClipboard() async {
+    if (_lastMarking == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Нечего копировать.')),
       );
@@ -70,77 +77,52 @@ class _LabelGeneratorPageState extends State<LabelGeneratorPage> {
     }
 
     try {
-      await Clipboard.setData(ClipboardData(text: _resultText));
+      final text = '${_lastMarking!.openedLine}\n${_lastMarking!.expiresLine}';
+      await Clipboard.setData(ClipboardData(text: text));
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('✅ Текст скопирован в буфер обмена!')),
       );
     } catch (e) {
-      print("Ошибка копирования: $e");
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('❌ Ошибка: $e')),
       );
     }
   }
 
-  // --- НОВАЯ ФУНКЦИЯ ---
-void _checkForJumpscare() {
-  final random = Random();
-  final chance = random.nextInt(100);
-  print("DEBUG: Random chance = $chance");
-  if (chance == 0) { // Проверяем 0 для отладки
-    print("DEBUG: Showing jumpscare!");
-    showDialog(
-      context: context,
-      barrierDismissible: false, // Важно: запрещаем закрытие по клику вне
-      builder: (context) => const JumpscareOverlay(
-        // onDismiss можно передать, если хочешь выполнить код после закрытия
-        // onDismiss: () => print("Jumpscare closed!"),
-      ),
-    ).then((_) {
-      print("DEBUG: Jumpscare dialog closed.");
-    });
-  } else {
-    print("DEBUG: No jumpscare this time.");
+  void _checkForJumpscare() {
+    final chance = Random().nextInt(100);
+    if (chance == 0) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const JumpscareOverlay(),
+      );
+    }
   }
-}
-  // --- /НОВАЯ ФУНКЦИЯ ---
 
   @override
   Widget build(BuildContext context) {
+    final resultText = _lastMarking != null
+        ? '${_lastMarking!.openedLine}\n${_lastMarking!.expiresLine}'
+        : 'Нажмите "Вскрыто" для расчёта';
+
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Color.fromRGBO(175, 146, 133, 1),
-        toolbarHeight: 80,
-        flexibleSpace: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const Text(
-                  'Маркировка',
-                  style: TextStyle(
-                    fontSize: 35,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
-                  tooltip: 'Сканировать QR-код',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const QRScannerScreen()),
-                    );
-                  },
-                ),
-              ],
-            ),
+      appBar: AppHeader(
+        title: 'Маркировка',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+            tooltip: 'Сканировать QR-код',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const QRScannerScreen()),
+              );
+            },
           ),
-        ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -157,23 +139,23 @@ void _checkForJumpscare() {
             Container(
               height: 56,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.brown),
+                border: Border.all(color: AppColors.primary),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: DropdownButtonFormField<String>(
+              child: DropdownButtonFormField<Product>(
                 value: _selectedProduct,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(horizontal: 12),
                 ),
                 hint: const Text('Выберите продукт'),
-                items: _products.keys.map((String product) {
-                  return DropdownMenuItem<String>(
+                items: _products.map((product) {
+                  return DropdownMenuItem<Product>(
                     value: product,
-                    child: Text(product),
+                    child: Text(product.name),
                   );
                 }).toList(),
-                onChanged: (String? newValue) {
+                onChanged: (Product? newValue) {
                   setState(() {
                     _selectedProduct = newValue;
                   });
@@ -183,15 +165,15 @@ void _checkForJumpscare() {
             const SizedBox(height: 20),
 
             ElevatedButton(
-              onPressed: () { // <-- Изменили onPressed
+              onPressed: () {
                 _calculateExpiration();
-                _checkForJumpscare(); // Вызываем проверку после расчёта
+                _checkForJumpscare();
               },
               style: ElevatedButton.styleFrom(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                backgroundColor: Colors.brown,
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -200,25 +182,22 @@ void _checkForJumpscare() {
             ),
             const SizedBox(height: 20),
 
-            const SizedBox(height: 20),
-
-            // Контейнер с результатом (плотно облегает текст + пунктир)
             Center(
               child: DottedBorder(
                 borderType: BorderType.RRect,
                 radius: const Radius.circular(12),
-                color: Colors.brown,
+                color: AppColors.primary,
                 strokeWidth: 2,
-                dashPattern: [8, 4], // Длина штриха и пробела
+                dashPattern: const [8, 4],
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
                   decoration: BoxDecoration(
-                    color: Colors.brown.shade50,
+                    color: AppColors.primary.withAlpha(20),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: IntrinsicWidth(  // ← Заставляет контейнер обнимать текст
+                  child: IntrinsicWidth(
                     child: Text(
-                      _resultText,
+                      resultText,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 25,
@@ -229,13 +208,12 @@ void _checkForJumpscare() {
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
 
             OutlinedButton.icon(
-              onPressed: () { // <-- Изменили onPressed и тут
+              onPressed: () {
                 _copyToClipboard();
-                _checkForJumpscare(); // Или вызвать и тут, если хочешь
+                _checkForJumpscare();
               },
               style: OutlinedButton.styleFrom(
                 shape: RoundedRectangleBorder(
