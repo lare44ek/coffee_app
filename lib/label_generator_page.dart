@@ -1,13 +1,15 @@
 // lib/label_generator_page.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:math';
 import 'package:dotted_border/dotted_border.dart';
 
 import 'models/product.dart';
 import 'models/marking.dart';
+import 'models/stock_item.dart';
+
 import 'widgets/app_header.dart';
+import 'widgets/product_picker_field.dart';
 import 'theme/app_colors.dart';
 import 'providers/app_providers.dart';
 import 'qr_scanner_screen.dart';
@@ -23,22 +25,37 @@ class LabelGeneratorPage extends ConsumerStatefulWidget {
   ConsumerState<LabelGeneratorPage> createState() => _LabelGeneratorPageState();
 }
 
+// Белая карточка с тенью — общий контейнер для блоков на экране.
+class _Card extends StatelessWidget {
+  final Widget child;
+
+  const _Card({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(12),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
 class _LabelGeneratorPageState extends ConsumerState<LabelGeneratorPage> {
   // Локальный стейт — нужен только этому экрану, в провайдер не идёт.
   Product? _selectedProduct;
   Marking? _lastMarking;
 
-  // Каталог продуктов — пока хардкод, потом заменим на ProductsRepository
-  static const List<Product> _products = [
-    Product(name: 'Молоко 3.2%',      shelfLifeHours: 48),
-    Product(name: 'Сливки 10%',        shelfLifeHours: 48),
-    Product(name: 'Сливки 20%',        shelfLifeHours: 72),
-    Product(name: 'Сироп ванильный',   shelfLifeHours: 720),
-    Product(name: 'Сироп карамельный', shelfLifeHours: 720),
-    Product(name: 'Кофе в зернах',     shelfLifeHours: 720),
-    Product(name: 'Матча',             shelfLifeHours: 168),
-    Product(name: 'Шоколадный соус',   shelfLifeHours: 336),
-  ];
 
   void _calculateExpiration() {
     if (_selectedProduct == null) {
@@ -60,36 +77,26 @@ class _LabelGeneratorPageState extends ConsumerState<LabelGeneratorPage> {
       _lastMarking = marking;
     });
 
-    // Пишем в глобальный провайдер — callback больше не нужен.
+    // Пишем маркировку в историю.
     ref.read(markingsProvider.notifier).add(marking);
+
+    // Добавляем вскрытый продукт в остатки (1 шт., статус opened).
+    ref.read(stockProvider.notifier).add(
+          StockItem(
+            id: 'marking_${now.millisecondsSinceEpoch}',
+            product: _selectedProduct!,
+            quantity: 1,
+            status: StockStatus.opened,
+            openedAt: now,
+            expiresAt: expiration,
+          ),
+        );
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('✅ Маркировка добавлена в историю!')),
     );
   }
 
-  void _copyToClipboard() async {
-    if (_lastMarking == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Нечего копировать.')),
-      );
-      return;
-    }
-
-    try {
-      final text = '${_lastMarking!.openedLine}\n${_lastMarking!.expiresLine}';
-      await Clipboard.setData(ClipboardData(text: text));
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Текст скопирован в буфер обмена!')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ Ошибка: $e')),
-      );
-    }
-  }
 
   void _checkForJumpscare() {
     final chance = Random().nextInt(100);
@@ -109,6 +116,7 @@ class _LabelGeneratorPageState extends ConsumerState<LabelGeneratorPage> {
         : 'Нажмите "Вскрыто" для расчёта';
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppHeader(
         title: 'Маркировка',
         actions: [
@@ -124,107 +132,101 @@ class _LabelGeneratorPageState extends ConsumerState<LabelGeneratorPage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Выберите продукт',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.left,
-            ),
-            const SizedBox(height: 30),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
 
-            Container(
-              height: 56,
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primary),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: DropdownButtonFormField<Product>(
-                value: _selectedProduct,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12),
-                ),
-                hint: const Text('Выберите продукт'),
-                items: _products.map((product) {
-                  return DropdownMenuItem<Product>(
-                    value: product,
-                    child: Text(product.name),
-                  );
-                }).toList(),
-                onChanged: (Product? newValue) {
-                  setState(() {
-                    _selectedProduct = newValue;
-                  });
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            ElevatedButton(
-              onPressed: () {
-                _calculateExpiration();
-                _checkForJumpscare();
-              },
-              style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              child: const Text('📦 ВСКРЫТО'),
-            ),
-            const SizedBox(height: 20),
-
-            Center(
-              child: DottedBorder(
-                borderType: BorderType.RRect,
-                radius: const Radius.circular(12),
-                color: AppColors.primary,
-                strokeWidth: 2,
-                dashPattern: const [8, 4],
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withAlpha(20),
-                    borderRadius: BorderRadius.circular(12),
+          // ── Карточка выбора продукта ──────────────────────────────────────
+          _Card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Продукт',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey,
+                    letterSpacing: 0.4,
                   ),
-                  child: IntrinsicWidth(
-                    child: Text(
-                      resultText,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 25,
-                        fontFamily: 'monospace',
+                ),
+                const SizedBox(height: 10),
+                ProductPickerField(
+                  value: _selectedProduct,
+                  onChanged: (p) => setState(() => _selectedProduct = p),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    _calculateExpiration();
+                    _checkForJumpscare();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    textStyle: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  child: const Text('📦 ВСКРЫТО'),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // ── Карточка результата ───────────────────────────────────────────
+          _Card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Маркировка',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Center(
+                  child: DottedBorder(
+                    borderType: BorderType.RRect,
+                    radius: const Radius.circular(12),
+                    color: AppColors.primary,
+                    strokeWidth: 2,
+                    dashPattern: const [8, 4],
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 24, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withAlpha(20),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        resultText,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.text,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(height: 20),
+          ),
 
-            OutlinedButton.icon(
-              onPressed: () {
-                _copyToClipboard();
-                _checkForJumpscare();
-              },
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              icon: const Icon(Icons.copy),
-              label: const Text('Копировать текст'),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
