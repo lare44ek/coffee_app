@@ -37,7 +37,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   void _confirmCreate() {
     final text = _createCtrl.text.trim();
     if (text.isEmpty) return;
-    final user = ref.read(currentUserProvider) ?? 'Гость';
+    final user = ref.read(displayNameProvider) ??
+        ref.read(currentUserProvider) ??
+        'Гость';
     ref.read(notesProvider.notifier).add(
           Note(
             id: 'note_${DateTime.now().millisecondsSinceEpoch}',
@@ -228,7 +230,9 @@ class _NoteCardState extends ConsumerState<_NoteCard> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = ref.watch(currentUserProvider) ?? 'Гость';
+    final currentUser = ref.watch(displayNameProvider) ??
+        ref.watch(currentUserProvider) ??
+        'Гость';
     final isOwn = widget.note.authorName == currentUser;
     final initials = widget.note.authorName.isNotEmpty
         ? widget.note.authorName[0].toUpperCase()

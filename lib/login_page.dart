@@ -40,10 +40,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     setState(() { _loading = true; _error = null; });
     try {
-      final name = await ApiService.login(username, password);
+      final res = await ApiService.login(username, password);
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('username', name);
-      ref.read(currentUserProvider.notifier).state = name;
+      await prefs.setString('username', res.username);
+      await prefs.setString('display_name', res.displayName);
+      ref.read(currentUserProvider.notifier).state = res.username;
+      ref.read(displayNameProvider.notifier).state = res.displayName;
       if (mounted) {
         Navigator.pushReplacement(
           context,

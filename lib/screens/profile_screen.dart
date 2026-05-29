@@ -2,7 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
 import '../providers/app_providers.dart';
+import '../services/api_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
 import '../login_page.dart';
@@ -13,7 +15,9 @@ class ProfileScreen extends ConsumerWidget {
   Future<void> _logout(BuildContext context, WidgetRef ref) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('username');
+    await prefs.remove('display_name');
     ref.read(currentUserProvider.notifier).state = null;
+    ref.read(displayNameProvider.notifier).state = null;
     if (context.mounted) {
       Navigator.pushAndRemoveUntil(
         context,
@@ -23,9 +27,62 @@ class ProfileScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _editName(BuildContext context, WidgetRef ref) async {
+    final login   = ref.read(currentUserProvider);
+    final current = ref.read(displayNameProvider) ?? '';
+    if (login == null) return;
+
+    final ctrl = TextEditingController(text: current);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Изменить имя'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+            hintText: 'Фамилия Имя',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Отмена', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Сохранить'),
+          ),
+        ],
+      ),
+    );
+
+    if (newName == null || newName.isEmpty || newName == current) return;
+
+    try {
+      final saved = await ApiService.updateDisplayName(login, newName);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('display_name', saved);
+      ref.read(displayNameProvider.notifier).state = saved;
+    } on DioException {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось сохранить имя')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final username = ref.watch(currentUserProvider) ?? '';
+    final login       = ref.watch(currentUserProvider) ?? '';
+    final displayName = ref.watch(displayNameProvider) ?? login;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -39,7 +96,7 @@ class ProfileScreen extends ConsumerWidget {
               radius: 40,
               backgroundColor: AppColors.primary,
               child: Text(
-                username.isNotEmpty ? username[0].toUpperCase() : '?',
+                displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 36,
@@ -48,13 +105,35 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    displayName,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.text,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                IconButton(
+                  onPressed: () => _editName(context, ref),
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  color: AppColors.primary,
+                  tooltip: 'Изменить имя',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(4),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
             Text(
-              username,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppColors.text,
-              ),
+              '@$login',
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
             ),
             const SizedBox(height: 48),
             SizedBox(

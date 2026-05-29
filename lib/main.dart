@@ -10,12 +10,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   final savedUser = prefs.getString('username');
+  final savedName = prefs.getString('display_name');
 
   runApp(
     ProviderScope(
       overrides: [
         if (savedUser != null)
           currentUserProvider.overrideWith((ref) => savedUser),
+        if (savedName != null)
+          displayNameProvider.overrideWith((ref) => savedName),
       ],
       child: CoffeeApp(initialUser: savedUser),
     ),

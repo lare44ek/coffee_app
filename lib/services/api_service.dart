@@ -141,20 +141,39 @@ class ApiService {
 
   // ── Авторизация ─────────────────────────────────────────────────────────────
 
-  static Future<String> login(String username, String password) async {
+  static Future<({String username, String displayName})> login(
+      String username, String password) async {
     final res = await _dio.post('/auth/login', data: {
       'username': username,
       'password': password,
     });
-    return res.data['username'] as String;
+    return (
+      username: res.data['username'] as String,
+      displayName:
+          (res.data['display_name'] as String?) ?? res.data['username'] as String,
+    );
   }
 
-  static Future<String> register(String username, String password) async {
+  static Future<({String username, String displayName})> register(
+      String username, String password) async {
     final res = await _dio.post('/auth/register', data: {
       'username': username,
       'password': password,
     });
-    return res.data['username'] as String;
+    return (
+      username: res.data['username'] as String,
+      displayName:
+          (res.data['display_name'] as String?) ?? res.data['username'] as String,
+    );
+  }
+
+  static Future<String> updateDisplayName(
+      String username, String displayName) async {
+    final res = await _dio.put('/auth/display-name', data: {
+      'username': username,
+      'display_name': displayName,
+    });
+    return res.data['display_name'] as String;
   }
 
   // ── Конвертеры JSON → модели ─────────────────────────────────────────────────

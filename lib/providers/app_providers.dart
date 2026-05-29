@@ -87,6 +87,10 @@ final markingsProvider =
 ///   Писать:  ref.read(currentUserProvider.notifier).state = login
 final currentUserProvider = StateProvider<String?>((ref) => null);
 
+/// Отображаемое имя (реальные Фамилия Имя). Используется как автор
+/// в заметках и маркировках. Логин остаётся в [currentUserProvider].
+final displayNameProvider = StateProvider<String?>((ref) => null);
+
 // ---------------------------------------------------------------------------
 // Остатки
 // ---------------------------------------------------------------------------

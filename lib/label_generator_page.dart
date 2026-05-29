@@ -77,7 +77,7 @@ class _LabelGeneratorPageState extends ConsumerState<LabelGeneratorPage> {
       _lastMarking = marking;
     });
 
-    final user = ref.read(currentUserProvider);
+    final user = ref.read(displayNameProvider) ?? ref.read(currentUserProvider);
     // Пишем маркировку в историю.
     ref.read(markingsProvider.notifier).add(marking, author: user);
 
