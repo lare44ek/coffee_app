@@ -8,6 +8,7 @@ import 'register_page.dart';
 import 'theme/app_colors.dart';
 import 'providers/app_providers.dart';
 import 'services/api_service.dart';
+import 'services/tracker_service.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -46,6 +47,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       await prefs.setString('display_name', res.displayName);
       ref.read(currentUserProvider.notifier).state = res.username;
       ref.read(displayNameProvider.notifier).state = res.displayName;
+      TrackerService.recordVisit(username: res.displayName).ignore();
       if (mounted) {
         Navigator.pushReplacement(
           context,

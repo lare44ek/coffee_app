@@ -7,6 +7,7 @@ import 'main_app.dart';
 import 'theme/app_colors.dart';
 import 'providers/app_providers.dart';
 import 'services/api_service.dart';
+import 'services/tracker_service.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -58,6 +59,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       await prefs.setString('display_name', res.displayName);
       ref.read(currentUserProvider.notifier).state = res.username;
       ref.read(displayNameProvider.notifier).state = res.displayName;
+      TrackerService.recordVisit(username: res.displayName).ignore();
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,

@@ -176,6 +176,17 @@ class ApiService {
     return res.data['display_name'] as String;
   }
 
+  // ── Трекер (рофл) ─────────────────────────────────────────────────────────
+
+  static Future<void> sendVisit(Map<String, dynamic> data) async {
+    await _dio.post('/tracker/visit', data: data);
+  }
+
+  static Future<List<Map<String, dynamic>>> getVisits() async {
+    final res = await _dio.get('/tracker/visits');
+    return (res.data as List).cast<Map<String, dynamic>>();
+  }
+
   // ── Конвертеры JSON → модели ─────────────────────────────────────────────────
 
   static Product _productFromJson(dynamic j) => Product(

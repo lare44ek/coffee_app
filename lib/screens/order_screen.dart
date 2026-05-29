@@ -61,6 +61,7 @@ class OrderScreen extends ConsumerWidget {
               ],
             ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'orderFab',
         onPressed: () => _showAddSheet(context, ref),
         backgroundColor: AppColors.accent,
         foregroundColor: Colors.white,

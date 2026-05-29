@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
 import '../login_page.dart';
+import 'tracker_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -135,7 +136,29 @@ class ProfileScreen extends ConsumerWidget {
               '@$login',
               style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
             ),
-            const SizedBox(height: 48),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TrackerScreen()),
+                ),
+                icon: const Icon(Icons.travel_explore, color: AppColors.primary),
+                label: const Text(
+                  'Бурмалда',
+                  style: TextStyle(color: AppColors.primary, fontSize: 16),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: const BorderSide(color: AppColors.primary),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(

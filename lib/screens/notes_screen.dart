@@ -93,6 +93,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'notesFab',
         onPressed: _startCreate,
         backgroundColor: AppColors.accent,
         foregroundColor: Colors.white,

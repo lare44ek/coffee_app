@@ -438,6 +438,7 @@ class _SpeedDialFabState extends ConsumerState<_SpeedDialFab>
           ),
         ),
         FloatingActionButton(
+          heroTag: 'stockFab',
           onPressed: _toggle,
           backgroundColor: AppColors.accent,
           foregroundColor: Colors.white,
