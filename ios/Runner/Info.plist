@@ -3,7 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>NSCameraUsageDescription</key>
-	<string>Для сканирования QR-кодов маркировки</string>
+	<string>Для сканирования QR-кодов маркировки и съёмки фото профиля</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Для выбора фото профиля из галереи</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

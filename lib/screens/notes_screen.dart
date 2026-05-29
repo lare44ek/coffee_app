@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/note.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
 
 class NotesScreen extends ConsumerStatefulWidget {
@@ -46,6 +47,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             authorName: user,
             text: text,
             createdAt: DateTime.now(),
+            // Своя заметка — сразу подставляем свою аватарку.
+            authorAvatarUrl: ref.read(avatarUrlProvider),
           ),
         );
     setState(() {
@@ -59,7 +62,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     final notes = ref.watch(notesProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: const AppHeader(title: 'Заметки'),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
@@ -122,7 +125,7 @@ class _NewNoteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.card(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.accent, width: 1.5),
         boxShadow: [
@@ -241,7 +244,7 @@ class _NoteCardState extends ConsumerState<_NoteCard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.card(context),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -261,21 +264,27 @@ class _NoteCardState extends ConsumerState<_NoteCard> {
               CircleAvatar(
                 radius: 18,
                 backgroundColor: _avatarColor(widget.note.authorName),
-                child: Text(
-                  initials,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                backgroundImage: widget.note.authorAvatarUrl != null
+                    ? NetworkImage(widget.note.authorAvatarUrl!)
+                    : null,
+                child: widget.note.authorAvatarUrl != null
+                    ? null
+                    : Text(
+                        initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   widget.note.authorName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
+                    color: AppTheme.onCard(context),
                   ),
                 ),
               ),
@@ -341,7 +350,7 @@ class _NoteCardState extends ConsumerState<_NoteCard> {
               ],
             ),
           ] else
-            Text(widget.note.text, style: const TextStyle(fontSize: 15)),
+            Text(widget.note.text, style: TextStyle(fontSize: 15, color: AppTheme.onCard(context))),
 
           const SizedBox(height: 8),
           // Дата создания

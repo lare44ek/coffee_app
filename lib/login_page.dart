@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'main_app.dart';
 import 'register_page.dart';
 import 'theme/app_colors.dart';
+import 'theme/app_theme.dart';
 import 'providers/app_providers.dart';
 import 'services/api_service.dart';
 import 'services/tracker_service.dart';
@@ -47,6 +48,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       await prefs.setString('display_name', res.displayName);
       ref.read(currentUserProvider.notifier).state = res.username;
       ref.read(displayNameProvider.notifier).state = res.displayName;
+      if (res.avatarUrl != null) {
+        await prefs.setString('avatar_url', res.avatarUrl!);
+      } else {
+        await prefs.remove('avatar_url');
+      }
+      ref.read(avatarUrlProvider.notifier).state = res.avatarUrl;
       TrackerService.recordVisit(username: res.displayName).ignore();
       if (mounted) {
         Navigator.pushReplacement(
@@ -69,7 +76,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppTheme.bg(context),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -91,12 +98,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Effoc',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.text,
+                    color: AppTheme.onCard(context),
                     letterSpacing: 1,
                   ),
                 ),
@@ -110,7 +117,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppTheme.card(context),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
@@ -130,6 +137,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         keyboardType: TextInputType.text,
                         textInputAction: TextInputAction.next,
                         decoration: _inputDecoration(
+                          context,
                           hint: 'Введите логин',
                           icon: Icons.person_outline_rounded,
                         ),
@@ -144,6 +152,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         textInputAction: TextInputAction.done,
                         onSubmitted: (_) => _attemptLogin(),
                         decoration: _inputDecoration(
+                          context,
                           hint: 'Введите пароль',
                           icon: Icons.lock_outline_rounded,
                         ).copyWith(
@@ -231,7 +240,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
   }
 
-  InputDecoration _inputDecoration({
+  InputDecoration _inputDecoration(
+    BuildContext context, {
     required String hint,
     required IconData icon,
   }) {
@@ -240,7 +250,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       hintStyle: const TextStyle(color: Colors.grey),
       prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
       filled: true,
-      fillColor: AppColors.background,
+      fillColor: AppTheme.bg(context),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),

@@ -7,6 +7,7 @@ import '../models/product.dart';
 
 import '../providers/app_providers.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/product_picker_field.dart';
 import '../qr_scanner_screen.dart';
@@ -28,7 +29,7 @@ class StockScreen extends ConsumerWidget {
     final closed = items.where((i) => i.status == StockStatus.closed).toList();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: const AppHeader(title: 'Остатки'),
       body: items.isEmpty
           ? const Center(
@@ -75,10 +76,10 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: AppColors.text,
+            color: AppTheme.onCard(context),
           ),
         ),
         const SizedBox(width: 8),
@@ -124,7 +125,7 @@ class _StockCardState extends ConsumerState<_StockCard> {
     final isWarn = item.isExpiringSoon;
     final isClosed = item.status == StockStatus.closed;
 
-    final bgColor = isWarn ? AppColors.warning.withAlpha(35) : Colors.white;
+    final bgColor = isWarn ? AppColors.warning.withAlpha(35) : AppTheme.card(context);
     final borderColor = _expanded
         ? AppColors.primary
         : (isWarn ? AppColors.warning : Colors.transparent);
