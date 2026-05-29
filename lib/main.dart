@@ -1,20 +1,30 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'login_page.dart';
+import 'main_app.dart';
+import 'providers/app_providers.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final savedUser = prefs.getString('username');
+
   runApp(
-    // ProviderScope — обязательная обёртка: хранит все провайдеры приложения.
-    // Должна быть ровно одна, в самом корне дерева.
-    const ProviderScope(
-      child: CoffeeApp(),
+    ProviderScope(
+      overrides: [
+        if (savedUser != null)
+          currentUserProvider.overrideWith((ref) => savedUser),
+      ],
+      child: CoffeeApp(initialUser: savedUser),
     ),
   );
 }
 
 class CoffeeApp extends StatelessWidget {
-  const CoffeeApp({super.key});
+  final String? initialUser;
+  const CoffeeApp({super.key, this.initialUser});
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +34,7 @@ class CoffeeApp extends StatelessWidget {
         primarySwatch: Colors.brown,
         useMaterial3: true,
       ),
-      home: const LoginPage(),
+      home: initialUser != null ? const MainApp() : const LoginPage(),
     );
   }
 }

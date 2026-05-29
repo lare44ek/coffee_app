@@ -4,10 +4,9 @@ import 'label_generator_page.dart';
 import 'screens/stock_screen.dart';
 import 'screens/notes_screen.dart';
 import 'screens/order_screen.dart';
+import 'screens/profile_screen.dart';
 import 'theme/app_colors.dart';
 
-// Обычный StatefulWidget — ref здесь не нужен,
-// единственный локальный стейт это индекс нижнего меню.
 class MainApp extends StatefulWidget {
   const MainApp({super.key});
 
@@ -23,6 +22,7 @@ class _MainAppState extends State<MainApp> {
     StockScreen(),
     NotesScreen(),
     OrderScreen(),
+    ProfileScreen(),
   ];
 
   @override
@@ -59,6 +59,11 @@ class _MainAppState extends State<MainApp> {
             icon: Icon(Icons.shopping_cart_outlined),
             activeIcon: Icon(Icons.shopping_cart),
             label: 'Заказ',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Профиль',
           ),
         ],
       ),

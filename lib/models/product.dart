@@ -2,6 +2,9 @@
 
 /// Продукт из каталога кофейни.
 class Product {
+  /// id из БД. null — для локально созданных (демо/оффлайн) продуктов.
+  final int? id;
+
   final String name;
 
   /// Срок годности после вскрытия — в часах.
@@ -11,6 +14,7 @@ class Product {
   final String category;
 
   const Product({
+    this.id,
     required this.name,
     required this.shelfLifeHours,
     this.category = '',

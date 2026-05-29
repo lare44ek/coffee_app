@@ -2,10 +2,12 @@
 //
 // Поле выбора продукта из каталога.
 // Вместо дропдауна на весь экран — шторка (~75% высоты) с поиском.
+// Каталог загружается с сервера через productsProvider.
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/product.dart';
-import '../models/catalog.dart';
+import '../providers/app_providers.dart';
 import '../theme/app_colors.dart';
 
 /// Кнопка-поле, которая при тапе открывает шторку с поиском по каталогу.
@@ -75,25 +77,21 @@ class ProductPickerField extends StatelessWidget {
 // Шторка с поиском
 // ---------------------------------------------------------------------------
 
-class _ProductPickerSheet extends StatefulWidget {
+class _ProductPickerSheet extends ConsumerStatefulWidget {
   final Product? selected;
   final ValueChanged<Product> onSelect;
 
   const _ProductPickerSheet({required this.selected, required this.onSelect});
 
   @override
-  State<_ProductPickerSheet> createState() => _ProductPickerSheetState();
+  ConsumerState<_ProductPickerSheet> createState() =>
+      _ProductPickerSheetState();
 }
 
-class _ProductPickerSheetState extends State<_ProductPickerSheet> {
+class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
   final _searchCtrl = TextEditingController();
   final _searchFocus = FocusNode();
   String _query = '';
-
-  // Кэш фильтрации — пересчитывается только при изменении поискового запроса,
-  // а не на каждый кадр анимации шторки.
-  String? _lastQuery;
-  Map<String, List<Product>>? _filteredCache;
 
   @override
   void initState() {
@@ -112,22 +110,16 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
     super.dispose();
   }
 
-  Map<String, List<Product>> get _filtered {
-    if (_query == _lastQuery && _filteredCache != null) return _filteredCache!;
-    _lastQuery = _query;
-    final result = <String, List<Product>>{};
+  /// Группирует продукты по категории, применяя поисковый фильтр.
+  Map<String, List<Product>> _group(List<Product> products) {
     final q = _query.toLowerCase();
-    for (final cat in kProductsByCategory.keys) {
-      final products = q.isEmpty
-          ? kProductsByCategory[cat]!
-          : kProductsByCategory[cat]!
-              .where((p) => p.name.toLowerCase().contains(q))
-              .toList();
-      if (products.isNotEmpty) {
-        result[cat] = products;
-      }
+    final result = <String, List<Product>>{};
+    for (final p in products) {
+      if (q.isNotEmpty && !p.name.toLowerCase().contains(q)) continue;
+      final cat = p.category.isEmpty ? 'Прочее' : p.category;
+      (result[cat] ??= []).add(p);
     }
-    return _filteredCache = result;
+    return result;
   }
 
   @override
@@ -139,8 +131,6 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
       snap: true,
       snapSizes: const [0.75, 0.95],
       builder: (context, scrollController) {
-        final filtered = _filtered;
-
         return Container(
           decoration: const BoxDecoration(
             color: Colors.white,
@@ -192,61 +182,90 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
 
               const Divider(height: 1),
 
-              // Список продуктов
+              // Список продуктов — зависит от загрузки каталога
               Expanded(
-                child: filtered.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Ничего не найдено',
-                          style: TextStyle(color: Colors.grey, fontSize: 16),
-                        ),
-                      )
-                    : ListView(
-                        controller: scrollController,
-                        padding: const EdgeInsets.only(bottom: 32),
-                        children: [
-                          for (final cat in filtered.keys) ...[
-                            // Заголовок категории
-                            Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(16, 14, 16, 4),
-                              child: Text(
-                                cat,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary.withAlpha(180),
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                            // Строки продуктов
-                            for (final p in filtered[cat]!)
-                              ListTile(
-                                dense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 24, vertical: 0),
-                                title: Text(
-                                  p.name,
-                                  style: const TextStyle(fontSize: 15),
-                                ),
-                                trailing: widget.selected?.name == p.name
-                                    ? const Icon(
-                                        Icons.check_rounded,
-                                        color: AppColors.primary,
-                                        size: 20,
-                                      )
-                                    : null,
-                                onTap: () => widget.onSelect(p),
-                              ),
-                          ],
-                        ],
+                child: ref.watch(productsProvider).when(
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (e, _) => _ErrorState(
+                        onRetry: () => ref.invalidate(productsProvider),
                       ),
+                      data: (products) =>
+                          _buildList(_group(products), scrollController),
+                    ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildList(
+      Map<String, List<Product>> filtered, ScrollController scrollController) {
+    if (filtered.isEmpty) {
+      return const Center(
+        child: Text(
+          'Ничего не найдено',
+          style: TextStyle(color: Colors.grey, fontSize: 16),
+        ),
+      );
+    }
+    return ListView(
+      controller: scrollController,
+      padding: const EdgeInsets.only(bottom: 32),
+      children: [
+        for (final cat in filtered.keys) ...[
+          // Заголовок категории
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+            child: Text(
+              cat,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary.withAlpha(180),
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          // Строки продуктов
+          for (final p in filtered[cat]!)
+            ListTile(
+              dense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+              title: Text(p.name, style: const TextStyle(fontSize: 15)),
+              trailing: widget.selected?.name == p.name
+                  ? const Icon(Icons.check_rounded,
+                      color: AppColors.primary, size: 20)
+                  : null,
+              onTap: () => widget.onSelect(p),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _ErrorState({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.cloud_off, color: Colors.grey, size: 40),
+          const SizedBox(height: 12),
+          const Text('Не удалось загрузить каталог',
+              style: TextStyle(color: Colors.grey, fontSize: 15)),
+          const SizedBox(height: 12),
+          TextButton(onPressed: onRetry, child: const Text('Повторить')),
+        ],
+      ),
     );
   }
 }

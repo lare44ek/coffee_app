@@ -3,11 +3,13 @@ import 'product.dart';
 
 /// Одна запись о вскрытии продукта.
 class Marking {
+  final String? id;
   final Product product;
   final DateTime openedAt;
   final DateTime expiresAt;
 
   const Marking({
+    this.id,
     required this.product,
     required this.openedAt,
     required this.expiresAt,

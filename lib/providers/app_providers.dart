@@ -6,23 +6,65 @@ import '../models/note.dart';
 import '../models/order_item.dart';
 import '../models/catalog.dart';
 import '../models/product.dart';
+import '../services/api_service.dart';
+
+// ---------------------------------------------------------------------------
+// Каталог продуктов (из БД)
+// ---------------------------------------------------------------------------
+
+/// Загружает каталог с сервера. Заменяет хардкод [kProductCatalog].
+///
+/// Использование:
+///   ref.watch(productsProvider).when(data:..., loading:..., error:...)
+/// Обновить:
+///   ref.invalidate(productsProvider)
+final productsProvider = FutureProvider<List<Product>>((ref) async {
+  return ApiService.getProducts();
+});
 
 // ---------------------------------------------------------------------------
 // Маркировки
 // ---------------------------------------------------------------------------
 
-/// Хранит список всех сгенерированных маркировок за сессию.
-///
-/// Использование:
-///   Читать:  ref.watch(markingsProvider)
-///   Писать:  ref.read(markingsProvider.notifier).add(marking)
+/// Хранит список маркировок, синхронизируется с API.
 class MarkingsNotifier extends StateNotifier<List<Marking>> {
-  MarkingsNotifier() : super(const []);
+  MarkingsNotifier() : super(const []) {
+    _load();
+  }
 
-  void add(Marking marking) {
-    // StateNotifier требует замены всего объекта state,
-    // а не мутации — поэтому spread-оператор, а не .add()
-    state = [...state, marking];
+  Future<void> _load() async {
+    try {
+      state = await ApiService.getMarkings();
+    } catch (_) {}
+  }
+
+  Future<void> add(Marking marking, {String? author}) async {
+    final tempId = 'tmp_${DateTime.now().millisecondsSinceEpoch}';
+    final withTemp = Marking(
+      id: tempId,
+      product: marking.product,
+      openedAt: marking.openedAt,
+      expiresAt: marking.expiresAt,
+    );
+    state = [...state, withTemp];
+    if (marking.product.id == null) return;
+    try {
+      final serverId = await ApiService.createMarking(
+        marking,
+        marking.product.id!,
+        author: author,
+      );
+      state = state
+          .map((m) => m.id == tempId
+              ? Marking(
+                  id: serverId,
+                  product: m.product,
+                  openedAt: m.openedAt,
+                  expiresAt: m.expiresAt,
+                )
+              : m)
+          .toList();
+    } catch (_) {}
   }
 }
 
@@ -51,54 +93,52 @@ final currentUserProvider = StateProvider<String?>((ref) => null);
 
 /// Хранит все позиции на складе (вскрытые и закрытые).
 class StockNotifier extends StateNotifier<List<StockItem>> {
-  StockNotifier() : super(_demo);
+  StockNotifier() : super(const []) {
+    _load();
+  }
 
-  // Тестовые данные — показывают оба состояния и подсветку истекающих.
-  static final List<StockItem> _demo = [
-    StockItem(
-      id: 'demo_1',
-      product: const Product(
-          name: 'Молоко 3,2% (упаковка)', shelfLifeHours: 72),
-      quantity: 2,
-      status: StockStatus.opened,
-      openedAt: DateTime.now().subtract(const Duration(hours: 60)),
-      expiresAt: DateTime.now().add(const Duration(hours: 12)), // истекает скоро
-    ),
-    StockItem(
-      id: 'demo_2',
-      product: const Product(name: 'Сливки 10%', shelfLifeHours: 48),
-      quantity: 1,
-      status: StockStatus.opened,
-      openedAt: DateTime.now().subtract(const Duration(hours: 6)),
-      expiresAt: DateTime.now().add(const Duration(hours: 42)),
-    ),
-    StockItem(
-      id: 'demo_3',
-      product: const Product(
-          name: 'Сироп ванильный', shelfLifeHours: 2160),
-      quantity: 3,
-      status: StockStatus.closed,
-    ),
-    StockItem(
-      id: 'demo_4',
-      product: const Product(name: 'Матча зеленая', shelfLifeHours: 8760),
-      quantity: 1,
-      status: StockStatus.closed,
-    ),
-  ];
+  Future<void> _load() async {
+    try {
+      state = await ApiService.getStock();
+    } catch (_) {}
+  }
 
-  void add(StockItem item) {
+  Future<void> add(StockItem item) async {
     state = [...state, item];
+    if (item.product.id == null) return;
+    try {
+      final serverId = await ApiService.createStockItem(item, item.product.id!);
+      state = state
+          .map((s) => s.id == item.id
+              ? StockItem(
+                  id: serverId,
+                  product: s.product,
+                  quantity: s.quantity,
+                  status: s.status,
+                  openedAt: s.openedAt,
+                  expiresAt: s.expiresAt,
+                )
+              : s)
+          .toList();
+    } catch (_) {}
   }
 
-  void remove(String id) {
-    state = state.where((item) => item.id != id).toList();
+  Future<void> remove(String id) async {
+    state = state.where((s) => s.id != id).toList();
+    try {
+      await ApiService.deleteStockItem(id);
+    } catch (_) {
+      await _load();
+    }
   }
 
-  void update(StockItem updated) {
-    state = state
-        .map((item) => item.id == updated.id ? updated : item)
-        .toList();
+  Future<void> update(StockItem updated) async {
+    state = state.map((s) => s.id == updated.id ? updated : s).toList();
+    try {
+      await ApiService.updateStockItem(updated);
+    } catch (_) {
+      await _load();
+    }
   }
 }
 
@@ -113,33 +153,49 @@ final stockProvider =
 
 /// Список заметок — новые добавляются в начало.
 class NotesNotifier extends StateNotifier<List<Note>> {
-  NotesNotifier()
-      : super([
-          Note(
-            id: 'demo_n1',
-            authorName: 'Андрей Б.',
-            text: 'Не забыть заказать молоко — заканчивается.',
-            createdAt: DateTime(2025, 2, 2, 20, 30),
-          ),
-          Note(
-            id: 'demo_n2',
-            authorName: 'Дмитрий Уткин',
-            text: 'Кофемашину протёр, всё чисто.',
-            createdAt: DateTime(2025, 2, 2, 18, 0),
-          ),
-        ]);
+  NotesNotifier() : super(const []) {
+    _load();
+  }
 
-  /// Добавить новую заметку в начало списка.
-  void add(Note note) {
+  Future<void> _load() async {
+    try {
+      state = await ApiService.getNotes();
+    } catch (_) {}
+  }
+
+  Future<void> add(Note note) async {
     state = [note, ...state];
+    try {
+      final serverId = await ApiService.createNote(note);
+      state = state
+          .map((n) => n.id == note.id
+              ? Note(
+                  id: serverId,
+                  authorName: n.authorName,
+                  text: n.text,
+                  createdAt: n.createdAt,
+                )
+              : n)
+          .toList();
+    } catch (_) {}
   }
 
-  void update(Note updated) {
+  Future<void> update(Note updated) async {
     state = state.map((n) => n.id == updated.id ? updated : n).toList();
+    try {
+      await ApiService.updateNote(updated.id, updated.text);
+    } catch (_) {
+      await _load();
+    }
   }
 
-  void remove(String id) {
+  Future<void> remove(String id) async {
     state = state.where((n) => n.id != id).toList();
+    try {
+      await ApiService.deleteNote(id);
+    } catch (_) {
+      await _load();
+    }
   }
 }
 
