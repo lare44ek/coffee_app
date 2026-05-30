@@ -1,5 +1,7 @@
 // lib/providers/app_providers.dart
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/marking.dart';
 import '../models/stock_item.dart';
 import '../models/note.dart';
@@ -91,6 +93,10 @@ final currentUserProvider = StateProvider<String?>((ref) => null);
 /// в заметках и маркировках. Логин остаётся в [currentUserProvider].
 final displayNameProvider = StateProvider<String?>((ref) => null);
 
+/// URL аватарки текущего пользователя. null — аватарка не загружена
+/// (показываем инициалы). Восстанавливается из prefs в main.dart.
+final avatarUrlProvider = StateProvider<String?>((ref) => null);
+
 // ---------------------------------------------------------------------------
 // Остатки
 // ---------------------------------------------------------------------------
@@ -178,6 +184,7 @@ class NotesNotifier extends StateNotifier<List<Note>> {
                   authorName: n.authorName,
                   text: n.text,
                   createdAt: n.createdAt,
+                  authorAvatarUrl: n.authorAvatarUrl,
                 )
               : n)
           .toList();
@@ -297,4 +304,27 @@ class OrderNotifier extends StateNotifier<List<OrderItem>> {
 final orderProvider =
     StateNotifierProvider<OrderNotifier, List<OrderItem>>(
   (ref) => OrderNotifier(ref),
+);
+
+// ---------------------------------------------------------------------------
+// Тема приложения
+// ---------------------------------------------------------------------------
+
+/// Хранит текущий режим темы и сохраняет выбор в SharedPreferences.
+///
+/// Принимает [initial] при старте, чтобы тема применилась без мигания
+/// (значение читается заранее в main() из SharedPreferences).
+class ThemeModeNotifier extends StateNotifier<ThemeMode> {
+  ThemeModeNotifier([super.initial = ThemeMode.light]);
+
+  Future<void> toggle() async {
+    state = state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('dark_mode', state == ThemeMode.dark);
+  }
+}
+
+final themeModeProvider =
+    StateNotifierProvider<ThemeModeNotifier, ThemeMode>(
+  (ref) => ThemeModeNotifier(),
 );

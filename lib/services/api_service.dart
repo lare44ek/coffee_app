@@ -143,7 +143,7 @@ class ApiService {
 
   // ── Авторизация ─────────────────────────────────────────────────────────────
 
-  static Future<({String username, String displayName})> login(
+  static Future<({String username, String displayName, String? avatarUrl})> login(
       String username, String password) async {
     final res = await _dio.post('/auth/login', data: {
       'username': username,
@@ -153,10 +153,11 @@ class ApiService {
       username: res.data['username'] as String,
       displayName:
           (res.data['display_name'] as String?) ?? res.data['username'] as String,
+      avatarUrl: res.data['avatar_url'] as String?,
     );
   }
 
-  static Future<({String username, String displayName})> register(
+  static Future<({String username, String displayName, String? avatarUrl})> register(
       String username, String password) async {
     final res = await _dio.post('/auth/register', data: {
       'username': username,
@@ -166,6 +167,7 @@ class ApiService {
       username: res.data['username'] as String,
       displayName:
           (res.data['display_name'] as String?) ?? res.data['username'] as String,
+      avatarUrl: res.data['avatar_url'] as String?,
     );
   }
 
@@ -176,6 +178,16 @@ class ApiService {
       'display_name': displayName,
     });
     return res.data['display_name'] as String;
+  }
+
+  /// Загружает файл аватарки на сервер. Возвращает публичный URL картинки.
+  static Future<String> uploadAvatar(String username, String filePath) async {
+    final form = FormData.fromMap({
+      'username': username,
+      'avatar': await MultipartFile.fromFile(filePath),
+    });
+    final res = await _dio.post('/auth/avatar', data: form);
+    return res.data['avatar_url'] as String;
   }
 
   // ── Трекер (рофл) ─────────────────────────────────────────────────────────
@@ -228,6 +240,7 @@ class ApiService {
         authorName: (j['author'] as String?) ?? '',
         text: (j['text'] as String?) ?? '',
         createdAt: DateTime.parse(j['created_at'] as String),
+        authorAvatarUrl: j['author_avatar'] as String?,
       );
 
   static OrderItem _orderFromJson(dynamic j) => OrderItem(

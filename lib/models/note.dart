@@ -9,11 +9,15 @@ class Note {
   final String text;
   final DateTime createdAt;
 
+  /// URL аватарки автора (с сервера). null — показываем инициалы.
+  final String? authorAvatarUrl;
+
   const Note({
     required this.id,
     required this.authorName,
     required this.text,
     required this.createdAt,
+    this.authorAvatarUrl,
   });
 
   Note copyWith({String? text}) {
@@ -22,6 +26,7 @@ class Note {
       authorName: authorName,
       text: text ?? this.text,
       createdAt: createdAt,
+      authorAvatarUrl: authorAvatarUrl,
     );
   }
 }

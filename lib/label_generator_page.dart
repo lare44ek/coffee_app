@@ -11,6 +11,7 @@ import 'models/stock_item.dart';
 import 'widgets/app_header.dart';
 import 'widgets/product_picker_field.dart';
 import 'theme/app_colors.dart';
+import 'theme/app_theme.dart';
 import 'providers/app_providers.dart';
 import 'qr_scanner_screen.dart';
 import 'jumpscare_overlay.dart';
@@ -25,7 +26,7 @@ class LabelGeneratorPage extends ConsumerStatefulWidget {
   ConsumerState<LabelGeneratorPage> createState() => _LabelGeneratorPageState();
 }
 
-// Белая карточка с тенью — общий контейнер для блоков на экране.
+// Карточка с тенью — общий контейнер для блоков на экране.
 class _Card extends StatelessWidget {
   final Widget child;
 
@@ -36,7 +37,7 @@ class _Card extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.card(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -117,7 +118,7 @@ class _LabelGeneratorPageState extends ConsumerState<LabelGeneratorPage> {
         : 'Нажмите "Вскрыто" для расчёта';
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppHeader(
         title: 'Маркировка',
         actions: [
@@ -219,11 +220,11 @@ class _LabelGeneratorPageState extends ConsumerState<LabelGeneratorPage> {
                       child: Text(
                         resultText,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 28,
                           fontFamily: 'monospace',
                           fontWeight: FontWeight.bold,
-                          color: AppColors.text,
+                          color: AppTheme.onCard(context),
                         ),
                       ),
                     ),

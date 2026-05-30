@@ -7,6 +7,7 @@ import '../models/product.dart';
 import '../models/catalog.dart'; // kMinStock
 import '../providers/app_providers.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/product_picker_field.dart';
 
@@ -20,7 +21,7 @@ class OrderScreen extends ConsumerWidget {
     final checked = items.where((i) => i.isChecked).toList();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: const AppHeader(title: 'Заказ'),
       body: items.isEmpty
           ? const Center(
@@ -34,12 +35,12 @@ class OrderScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
               children: [
                 if (unchecked.isNotEmpty) ...[
-                  const Text(
+                  Text(
                     'Необходимо заказать',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.text,
+                      color: AppTheme.onCard(context),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -110,7 +111,7 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
         duration: const Duration(milliseconds: 200),
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.card(context),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: _expanded ? AppColors.primary : Colors.transparent,
@@ -139,14 +140,16 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(4)),
               ),
-              title: Text(
-                item.product.name,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                  color: item.isChecked ? Colors.grey : AppColors.text,
-                  decoration:
-                      item.isChecked ? TextDecoration.lineThrough : null,
+              title: Builder(
+                builder: (context) => Text(
+                  item.product.name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: item.isChecked ? Colors.grey : AppTheme.onCard(context),
+                    decoration:
+                        item.isChecked ? TextDecoration.lineThrough : null,
+                  ),
                 ),
               ),
               subtitle: Text(

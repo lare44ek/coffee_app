@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/product.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 
 /// Кнопка-поле, которая при тапе открывает шторку с поиском по каталогу.
 ///
@@ -46,7 +47,9 @@ class ProductPickerField extends StatelessWidget {
                 value?.name ?? hint,
                 style: TextStyle(
                   fontSize: 16,
-                  color: value != null ? AppColors.text : Colors.grey.shade500,
+                  color: value != null
+                      ? AppTheme.onCard(context)
+                      : Colors.grey.shade500,
                 ),
               ),
             ),
@@ -132,9 +135,9 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
       snapSizes: const [0.75, 0.95],
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: AppTheme.card(context),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             children: [
@@ -144,7 +147,7 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
                 height: 4,
                 margin: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: Colors.grey.shade500,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -169,7 +172,7 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
                           )
                         : null,
                     filled: true,
-                    fillColor: Colors.grey.shade100,
+                    fillColor: AppTheme.bg(context),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide.none,

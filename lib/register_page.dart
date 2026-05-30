@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'main_app.dart';
 import 'theme/app_colors.dart';
+import 'theme/app_theme.dart';
 import 'providers/app_providers.dart';
 import 'services/api_service.dart';
 import 'services/tracker_service.dart';
@@ -59,6 +60,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       await prefs.setString('display_name', res.displayName);
       ref.read(currentUserProvider.notifier).state = res.username;
       ref.read(displayNameProvider.notifier).state = res.displayName;
+      if (res.avatarUrl != null) {
+        await prefs.setString('avatar_url', res.avatarUrl!);
+      } else {
+        await prefs.remove('avatar_url');
+      }
+      ref.read(avatarUrlProvider.notifier).state = res.avatarUrl;
       TrackerService.recordVisit(username: res.displayName).ignore();
       if (mounted) {
         Navigator.pushAndRemoveUntil(
@@ -82,7 +89,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -96,7 +103,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.card(context),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -116,6 +123,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     keyboardType: TextInputType.text,
                     textInputAction: TextInputAction.next,
                     decoration: _inputDecoration(
+                      context,
                       hint: 'Придумайте логин',
                       icon: Icons.person_outline_rounded,
                     ),
@@ -129,6 +137,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     obscureText: _obscurePass,
                     textInputAction: TextInputAction.next,
                     decoration: _inputDecoration(
+                      context,
                       hint: 'Придумайте пароль',
                       icon: Icons.lock_outline_rounded,
                     ).copyWith(
@@ -155,6 +164,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) => _attemptRegister(),
                     decoration: _inputDecoration(
+                      context,
                       hint: 'Повторите пароль',
                       icon: Icons.lock_outline_rounded,
                     ).copyWith(
@@ -220,7 +230,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     );
   }
 
-  InputDecoration _inputDecoration({
+  InputDecoration _inputDecoration(
+    BuildContext context, {
     required String hint,
     required IconData icon,
   }) {
@@ -229,7 +240,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       hintStyle: const TextStyle(color: Colors.grey),
       prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
       filled: true,
-      fillColor: AppColors.background,
+      fillColor: AppTheme.bg(context),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
