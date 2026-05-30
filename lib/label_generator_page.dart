@@ -124,10 +124,16 @@ class _LabelGeneratorPageState extends ConsumerState<LabelGeneratorPage> {
           IconButton(
             icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
             tooltip: 'Сканировать QR-код',
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              // Сканер возвращает найденный по штрих-коду продукт (или null).
+              final scanned = await Navigator.push<Product>(
                 context,
                 MaterialPageRoute(builder: (context) => const QRScannerScreen()),
+              );
+              if (scanned == null || !context.mounted) return;
+              setState(() => _selectedProduct = scanned);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Выбрано: ${scanned.name}')),
               );
             },
           ),

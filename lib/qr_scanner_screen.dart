@@ -1,42 +1,84 @@
 // lib/qr_scanner_screen.dart
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart'; 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
-class QRScannerScreen extends StatelessWidget {
+import 'models/product.dart';
+import 'providers/app_providers.dart';
+
+/// Экран сканера штрих-кодов (EAN-13) и QR.
+///
+/// При совпадении отсканированного кода с товаром из каталога экран
+/// закрывается и возвращает найденный [Product] через [Navigator.pop].
+/// Если код не найден — показывает сообщение и продолжает сканировать.
+class QRScannerScreen extends ConsumerStatefulWidget {
   const QRScannerScreen({super.key});
+
+  @override
+  ConsumerState<QRScannerScreen> createState() => _QRScannerScreenState();
+}
+
+class _QRScannerScreenState extends ConsumerState<QRScannerScreen> {
+  // noDuplicates — один и тот же код подряд не вызывает onDetect повторно.
+  final _controller = MobileScannerController(
+    detectionSpeed: DetectionSpeed.noDuplicates,
+  );
+
+  // После первого совпадения экран закрывается; флаг защищает от
+  // повторного pop, если onDetect успеет сработать ещё раз.
+  bool _handled = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onDetect(BarcodeCapture capture) {
+    if (_handled) return;
+
+    for (final barcode in capture.barcodes) {
+      final code = barcode.rawValue;
+      if (code == null || code.isEmpty) continue;
+
+      // Каталог уже загружен через productsProvider (FutureProvider).
+      final products = ref.read(productsProvider).valueOrNull ?? const [];
+
+      Product? match;
+      for (final p in products) {
+        if (p.barcode != null && p.barcode == code) {
+          match = p;
+          break;
+        }
+      }
+
+      if (match != null) {
+        _handled = true;
+        Navigator.pop<Product>(context, match);
+        return;
+      }
+
+      // Код прочитан, но в каталоге не найден.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Код $code не привязан к продукту')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Сканировать QR-код'),
-        backgroundColor: Color.fromRGBO(175, 146, 133, 1),
-        foregroundColor: Color.fromRGBO(255, 255, 255, 1),
+        title: const Text('Сканировать код'),
+        backgroundColor: const Color.fromRGBO(175, 146, 133, 1),
+        foregroundColor: const Color.fromRGBO(255, 255, 255, 1),
       ),
-      // MobileScanner отвечает за отображение камеры и сканирование
+      // MobileScanner отвечает за отображение камеры и распознавание.
       body: Stack(
         children: [
           MobileScanner(
-            // onDetect можно использовать для обработки распознанного QR-кода
-            onDetect: (capture) {
-              final List<Barcode> barcodes = capture.barcodes;
-              for (final Barcode barcode in barcodes) {
-                // Получаем текст из QR-кода
-                final String code = barcode.rawValue ?? 'Не удалось распознать';
-                // Показываем Snackbar с результатом
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('QR-код: $code')),
-                );
-                // Пример: можно сразу вернуть результат в предыдущий экран
-                // Navigator.pop(context, code);
-                // Но пока просто покажем snackbar и продолжим сканировать
-              }
-            },
-            // Если хочешь, можно отключить автоспуск затвера
-            controller: MobileScannerController(
-              detectionSpeed: DetectionSpeed.noDuplicates, // Пример настройки
-              // torchEnabled: true, // Включить/выключить вспышку
-            ),
+            controller: _controller,
+            onDetect: _onDetect,
           ),
           Positioned(
             top: 100,
@@ -61,7 +103,7 @@ class QRScannerScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
-                  'Отсканируйте QR-код на упаковке',
+                  'Наведите на штрих-код или QR на упаковке',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -77,7 +119,7 @@ class QRScannerScreen extends StatelessWidget {
   }
 }
 
-// Виджет для отображения "рамки" сканирования и текста поверх камеры
+// Виджет для отображения "рамки" сканирования поверх камеры.
 class _ScannerOverlay extends StatelessWidget {
   const _ScannerOverlay();
 

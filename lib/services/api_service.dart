@@ -25,6 +25,7 @@ class ApiService {
       'category': p.category,
       'shelf_life_hours': p.shelfLifeHours,
       'min_stock': minStock,
+      'barcode': p.barcode,
     });
     return res.data['id'] as int;
   }
@@ -35,6 +36,7 @@ class ApiService {
       'category': p.category,
       'shelf_life_hours': p.shelfLifeHours,
       'min_stock': minStock,
+      'barcode': p.barcode,
     });
   }
 
@@ -194,6 +196,7 @@ class ApiService {
         name: j['name'] as String,
         shelfLifeHours: j['shelf_life_hours'] as int,
         category: (j['category'] as String?) ?? '',
+        barcode: j['barcode'] as String?,
       );
 
   static StockItem _stockFromJson(dynamic j) => StockItem(
