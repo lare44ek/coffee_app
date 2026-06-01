@@ -400,11 +400,26 @@ class _SpeedDialFabState extends ConsumerState<_SpeedDialFab>
     );
   }
 
-  void _onScan() {
+  void _onScan() async {
     _close();
-    Navigator.push(
+    // Сканер возвращает найденный по штрих-коду продукт (или null).
+    final scanned = await Navigator.push<Product>(
       context,
-      MaterialPageRoute<void>(builder: (_) => const QRScannerScreen()),
+      MaterialPageRoute<Product>(builder: (_) => const QRScannerScreen()),
+    );
+    if (scanned == null || !mounted) return;
+    // Отсканированный товар кладём в остатки как закрытый (1 шт.).
+    final now = DateTime.now();
+    ref.read(stockProvider.notifier).add(
+          StockItem(
+            id: 'scan_${now.millisecondsSinceEpoch}',
+            product: scanned,
+            quantity: 1,
+            status: StockStatus.closed,
+          ),
+        );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Добавлено в «Закрыто»: ${scanned.name}')),
     );
   }
 
@@ -424,7 +439,7 @@ class _SpeedDialFabState extends ConsumerState<_SpeedDialFab>
               children: [
                 _FabOption(
                   label: 'Сканировать код',
-                  icon: Icons.qr_code_scanner,
+                  icon: Icons.barcode_reader,
                   onTap: _onScan,
                 ),
                 const SizedBox(height: 8),

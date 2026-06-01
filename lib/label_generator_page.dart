@@ -123,8 +123,8 @@ class _LabelGeneratorPageState extends ConsumerState<LabelGeneratorPage> {
         title: 'Маркировка',
         actions: [
           IconButton(
-            icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
-            tooltip: 'Сканировать QR-код',
+            icon: const Icon(Icons.barcode_reader, color: Colors.white),
+            tooltip: 'Сканировать штрих-код',
             onPressed: () async {
               // Сканер возвращает найденный по штрих-коду продукт (или null).
               final scanned = await Navigator.push<Product>(
