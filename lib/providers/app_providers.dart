@@ -173,6 +173,9 @@ class NotesNotifier extends StateNotifier<List<Note>> {
     } catch (_) {}
   }
 
+  /// Ручное обновление списка заметок (pull-to-refresh).
+  Future<void> refresh() => _load();
+
   Future<void> add(Note note) async {
     state = [note, ...state];
     try {

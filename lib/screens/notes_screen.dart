@@ -64,9 +64,15 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     return Scaffold(
       backgroundColor: AppTheme.bg(context),
       appBar: const AppHeader(title: 'Заметки'),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-        children: [
+      body: RefreshIndicator(
+        color: AppColors.accent,
+        onRefresh: () => ref.read(notesProvider.notifier).refresh(),
+        child: ListView(
+          // AlwaysScrollable нужен, чтобы свайп вниз работал даже когда
+          // заметок мало и список не заполняет экран.
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          children: [
           // Форма создания новой заметки — появляется вверху.
           if (_creating) ...[
             _NewNoteCard(
@@ -93,7 +99,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               child: _NoteCard(note: note),
             ),
           ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'notesFab',
